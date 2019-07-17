@@ -228,13 +228,14 @@ def simulate_hand(on_draw):
 
 def main():
     n = int(input('number of simulated hands: '))
-    pd = input('on the play or on the draw? ').lower()
-    if pd == 'play':
-        draw = False
-    elif pd == 'draw':
-        draw = True
-    else:
-        raise KeyError('input must be play or draw')
+    while 1:
+        pd = input('on the play or on the draw? ').lower()
+        pd_tbl = {'play': False, 'draw': True}
+        if pd in pd_tbl:
+            draw = pd_tbl[pd]
+            break
+        else: print("error: input must be 'play' or 'draw'")
+
     print('running simulations...')
     sims = [simulate_hand(on_draw = draw) for x in range(n)]
     print('results: ' + str(sum(sims)) + ' turn 1 Griselbrands in ' 
