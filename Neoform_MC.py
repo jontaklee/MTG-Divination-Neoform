@@ -1,10 +1,9 @@
 #!/usr/bin/env python3 v2.0
 # -*- coding: utf-8 -*-
 """
-Created on Fri May 3 14:23:22 2019
-
-@author: jonathan
+@author: jonathan t lee - https://github.com/jontaklee
 """
+
 from itertools import combinations 
 import numpy as np
 from random import shuffle
