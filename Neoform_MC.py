@@ -1,10 +1,11 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3 v1.1
 # -*- coding: utf-8 -*-
 """
 Created on Fri May 3 14:23:22 2019
 
 @author: jonathan
 """
+import numpy as np
 from random import shuffle
 
 class MagicCard:
@@ -226,8 +227,20 @@ def simulate_hand(on_draw):
     return eval_hand(hand)
 
 def main():
-    return [simulate_hand(on_draw = False) for x in range(100000)]
-
+    n = int(input('number of simulated hands: '))
+    pd = input('on the play or on the draw? ').lower()
+    if pd == 'play':
+        draw = False
+    elif pd == 'draw':
+        draw = True
+    else:
+        raise KeyError('input must be play or draw')
+    print('running simulations...')
+    sims = [simulate_hand(on_draw = draw) for x in range(n)]
+    print('results: ' + str(sum(sims)) + ' turn 1 Griselbrands in ' 
+          + str(n) + ' hands: ' 
+          + str(round(np.mean(sims)*100, 2)) + '% success rate') 
+    
 
 if __name__ == '__main__':
     main()
