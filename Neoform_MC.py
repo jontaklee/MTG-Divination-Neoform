@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 v2.2
+#!/usr/bin/env python3 v2.3
 # -*- coding: utf-8 -*-
 """
 @author: jonathan t lee - https://github.com/jontaklee
@@ -104,13 +104,15 @@ def rider_and_tutor(hand_dict):
     return True if has_rider and has_tutor else False
 
 ## check in hand contains a land
-def land_check(hand):
-    return 'land' in {card.card_type:0 for card in hand}
+def land_check(hand_dict):
+    all_lands = set(['Breeding Pool', 'Botanical Sanctum', 
+                    'Gemstone Mine', 'Waterlogged Grove'])
+    return True if all_lands.intersection(hand_dict) else False
 
 ## check if hand has mana to cast neoform
-def tryNeoform(hand, hand_dict):
+def tryNeoform(hand_dict):
     
-    has_land = land_check(hand)
+    has_land = land_check(hand_dict)
     tangle_count = hand_dict.get('Chancellor of the Tangle', 0)
     ssg_count = hand_dict.get('Simian Spirit Guide', 0)
     filter_count = hand_dict.get('Manamorphose', 0) + hand_dict.get(
@@ -132,9 +134,9 @@ def tryNeoform(hand, hand_dict):
     
     return False
 
-def tryEvolution(hand, hand_dict):
+def tryEvolution(hand_dict):
     
-    has_land = land_check(hand)
+    has_land = land_check(hand_dict)
     tangle_count = hand_dict.get('Chancellor of the Tangle', 0)
     ssg_count = hand_dict.get('Simian Spirit Guide', 0)
     filter_count = hand_dict.get('Manamorphose', 0) + hand_dict.get(
@@ -161,31 +163,25 @@ def tryEvolution(hand, hand_dict):
     return False
 
 ## check if 2 green cards available to discard to allosaurus rider
-def count_green(hand, hand_dict, tutor, tutor_flag):
+def count_green(hand, tutor, tutor_flag):
     
-    # exclude the allosaurus rider as an option to discard
-    hand_names = [card.name for card in hand]
-    rm_indeces = []
-    if 'Allosaurus Rider' in hand_dict:
-        rm_indeces.append(hand_names.index('Allosaurus Rider'))
-    else:
-        rm_indeces.append(hand_names.index('Summoners Pact'))
+    ex_dict = {'Allosaurus Rider': set(['Allosaurus Rider', 'Summoners Pact']),
+               'Summoners Pact': set(['Allosaurus Rider', 'Summoners Pact']),
+                tutor: set([tutor])}
     
-    # exclude the tutor as an option to discard
-    rm_indeces.append(hand_names.index(tutor))
-    
-    # exclude the color filter as an option to discard, if one is used
     if tutor_flag == 2:
-        if 'Manamorphose' in hand_dict:
-            rm_indeces.append(hand_names.index('Manamorphose'))
-        else:
-            rm_indeces.append(hand_names.index('Wild Cantor'))
+        ex_dict['Manamorphose'] = set(['Manamorphose', 'Wild Cantor'])
+        ex_dict['Wild Cantor'] = set(['Manamorphose', 'Wild Cantor'])
     
-    # count green cards
-    # does not consider corner case where a color filter gets used up
-    simp_hand = [card for i, card in enumerate(hand) if i not in rm_indeces]
-    num_green = [card.color for card in simp_hand].count('G')
-    return True if num_green >= 2 else False
+    green_count = 0
+    for card in hand:
+        if card.name in ex_dict:
+            ex_dict = {cn:ex_dict[cn] for cn in set(ex_dict) - 
+                       ex_dict[card.name]}
+        elif card.color == 'G': green_count += 1
+        else: continue
+        
+    return True if green_count >= 2 else False
 
 ## primary function to evaluate for turn 1 neoform
 def eval_hand(hand):
@@ -208,20 +204,20 @@ def eval_hand(hand):
     
     # third check: check for neoform mana
     if 'Neoform' in hand_dict:
-        neoform = tryNeoform(hand, hand_dict)
+        neoform = tryNeoform(hand_dict)
     
     # fourth check: check for evolution mana
     if 'Eldritch Evolution' in hand_dict:
-        evolution = tryEvolution(hand, hand_dict)
+        evolution = tryEvolution(hand_dict)
     
     # fifth check: green cards to cast rider
     if neoform:
-        keep = count_green(hand, hand_dict, 'Neoform', neoform)
+        keep = count_green(hand, 'Neoform', neoform)
         if keep:
             return keep
         
     if evolution: 
-        keep = count_green(hand, hand_dict, 'Eldritch Evolution', evolution)
+        keep = count_green(hand, 'Eldritch Evolution', evolution)
 
     return keep
 
@@ -230,10 +226,7 @@ def simulate_hand():
     
     library = NeoDeck()
     hand = library.draw_opener(7)
-    '''
-    if on_draw:
-        library.draw(hand)
-    '''
+
     return eval_hand(hand)
 
 ## helper function to evaluate all hands resulting from a london mulligan
@@ -269,15 +262,6 @@ def main():
         try: n = int(n)
         except: print('input must be a positive integer')
         else: break
-    '''
-    while 1:
-        pd = input('on the play or on the draw? ').lower()
-        pd_tbl = {'play': False, 'draw': True}
-        if pd in pd_tbl:
-            draw = pd_tbl[pd]
-            break
-        else: print("error: input must be 'play' or 'draw'")
-    '''
 
     print('running simulations...')
     sims = [sim_with_mulligans() for x in range(n)]
