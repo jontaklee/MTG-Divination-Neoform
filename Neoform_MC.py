@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 v2.0
+#!/usr/bin/env python3 v2.2
 # -*- coding: utf-8 -*-
 """
 @author: jonathan t lee - https://github.com/jontaklee
@@ -118,15 +118,15 @@ def tryNeoform(hand, hand_dict):
     
     # ug land + tangle
     if has_land and tangle_count:
-        return True
+        return 1
     
     # land + ssg + manamorphose/cantor
     if has_land and ssg_count and filter_count:
-        return True
+        return 2
     
     # 2 tangle and/or ssg + manamorphose/cantor
     if tangle_count + ssg_count >= 2 and filter_count:
-        return True
+        return 2
     
     # note: spending 2 ssg is acceptable because a land drop can be made later
     
@@ -142,26 +142,26 @@ def tryEvolution(hand, hand_dict):
     
     # land + 2 tangle, or 3 tangle
     if has_land + tangle_count >= 3:
-        return True
+        return 1
     
     # land + tangle + ssg
     if has_land and tangle_count and ssg_count:
-        return True
+        return 1
     
     # 2 tangle + ssg
     if tangle_count == 2 and ssg_count:
-        return True
+        return 1
     
     # 1 tangle + 2 ssg + color filter
     if tangle_count == 1 and ssg_count >= 2 and filter_count:
-        return True
+        return 2
     
     # note: can't spend 2 ssg and a land, or 3 ssg
 
     return False
 
 ## check if 2 green cards available to discard to allosaurus rider
-def count_green(hand, hand_dict, tutor):
+def count_green(hand, hand_dict, tutor, tutor_flag):
     
     # exclude the allosaurus rider as an option to discard
     hand_names = [card.name for card in hand]
@@ -173,6 +173,13 @@ def count_green(hand, hand_dict, tutor):
     
     # exclude the tutor as an option to discard
     rm_indeces.append(hand_names.index(tutor))
+    
+    # exclude the color filter as an option to discard, if one is used
+    if tutor_flag == 2:
+        if 'Manamorphose' in hand_dict:
+            rm_indeces.append(hand_names.index('Manamorphose'))
+        else:
+            rm_indeces.append(hand_names.index('Wild Cantor'))
     
     # count green cards
     # does not consider corner case where a color filter gets used up
@@ -191,26 +198,30 @@ def eval_hand(hand):
     for card in hand:
         hand_dict[card.name] = hand_dict.get(card.name, 0) + 1
     
-    # first check: rider/pact + neoform/evolution
-    if not rider_and_tutor(hand_dict):
-        return keep
+    # first check: check that both griselbrands aren't in hand
+    if hand_dict.get('Griselbrand', 0) == 2:
+        return False
     
-    # second check: check for neoform mana
+    # second check: rider/pact + neoform/evolution
+    if not rider_and_tutor(hand_dict):
+        return False
+    
+    # third check: check for neoform mana
     if 'Neoform' in hand_dict:
         neoform = tryNeoform(hand, hand_dict)
     
-    # third check: check for evolution mana
+    # fourth check: check for evolution mana
     if 'Eldritch Evolution' in hand_dict:
         evolution = tryEvolution(hand, hand_dict)
     
-    # fourth check: green cards to cast rider
+    # fifth check: green cards to cast rider
     if neoform:
-        keep = count_green(hand, hand_dict, 'Neoform')
+        keep = count_green(hand, hand_dict, 'Neoform', neoform)
         if keep:
             return keep
         
     if evolution: 
-        keep = count_green(hand, hand_dict, 'Eldritch Evolution')
+        keep = count_green(hand, hand_dict, 'Eldritch Evolution', evolution)
 
     return keep
 
