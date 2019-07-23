@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 v2.3
+#!/usr/bin/env python3 v2.4
 # -*- coding: utf-8 -*-
 """
 @author: jonathan t lee - https://github.com/jontaklee
@@ -67,7 +67,7 @@ def decklist():
     quads = [allosaurus, chancellor, spirit, eldritch, neoform, g_pact, shoal,
          manamorphose, visions] * 4
     dups = [wurm, griselbrand] * 2
-    singles = [cantor, maniac, revival, u_pact, lgo, quest, autumn]
+    singles = [cantor, maniac, revival, u_pact, lgo, autumn, quest]
 
     return lands + quads + dups + singles
 
@@ -117,6 +117,7 @@ def tryNeoform(hand_dict):
     ssg_count = hand_dict.get('Simian Spirit Guide', 0)
     filter_count = hand_dict.get('Manamorphose', 0) + hand_dict.get(
             'Wild Cantor', 0)
+    has_quest = hand_dict.get('Safewright Quest', 0)
     
     # ug land + tangle
     if has_land and tangle_count:
@@ -129,6 +130,10 @@ def tryNeoform(hand_dict):
     # 2 tangle and/or ssg + manamorphose/cantor
     if tangle_count + ssg_count >= 2 and filter_count:
         return 2
+    
+    # 2 tangle + safewright quest
+    if tangle_count >= 2 and has_quest:
+        return 3
     
     # note: spending 2 ssg is acceptable because a land drop can be made later
     
@@ -169,9 +174,13 @@ def count_green(hand, tutor, tutor_flag):
                'Summoners Pact': set(['Allosaurus Rider', 'Summoners Pact']),
                 tutor: set([tutor])}
     
+    # added if a color filter is required for the hand to function
     if tutor_flag == 2:
         ex_dict['Manamorphose'] = set(['Manamorphose', 'Wild Cantor'])
         ex_dict['Wild Cantor'] = set(['Manamorphose', 'Wild Cantor'])
+    
+    if tutor_flag == 3:
+        ex_dict['Safewright Quest'] = set(['Safewright Quest'])
     
     green_count = 0
     for card in hand:
@@ -187,8 +196,8 @@ def count_green(hand, tutor, tutor_flag):
 def eval_hand(hand):
     
     keep = False
-    neoform = False
-    evolution = False
+    neoform_flag = False
+    evolution_flag = False
     
     hand_dict = {}
     for card in hand:
@@ -204,20 +213,20 @@ def eval_hand(hand):
     
     # third check: check for neoform mana
     if 'Neoform' in hand_dict:
-        neoform = tryNeoform(hand_dict)
+        neoform_flag = tryNeoform(hand_dict)
     
     # fourth check: check for evolution mana
     if 'Eldritch Evolution' in hand_dict:
-        evolution = tryEvolution(hand_dict)
+        evolution_flag = tryEvolution(hand_dict)
     
     # fifth check: green cards to cast rider
-    if neoform:
-        keep = count_green(hand, 'Neoform', neoform)
+    if neoform_flag:
+        keep = count_green(hand, 'Neoform', neoform_flag)
         if keep:
             return keep
         
-    if evolution: 
-        keep = count_green(hand, 'Eldritch Evolution', evolution)
+    if evolution_flag: 
+        keep = count_green(hand, 'Eldritch Evolution', evolution_flag)
 
     return keep
 
@@ -272,4 +281,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
