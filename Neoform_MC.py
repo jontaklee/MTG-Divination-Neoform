@@ -1,116 +1,66 @@
-#!/usr/bin/env python3 v2.4
+#!/usr/bin/env python3 v3.0
 # -*- coding: utf-8 -*-
 """
 @author: jonathan t lee - https://github.com/jontaklee
 """
 
+import csv
 from itertools import combinations 
 import numpy as np
-from random import shuffle
 
-class MagicCard:
-    
-   def __init__(self, name, cmc, card_type, color):
-       self.name = name
-       self.cmc = cmc
-       self.card_type = card_type
-       self.color = color
-       
-# class to specify Land cards
-class Land(MagicCard):
-    
-    def __init__(self, name, basic, col_mana):
-        self.name = name
-        self.basic = basic
-        self.col_mana = col_mana
-        MagicCard.__init__(self, name, 0, 'land', '')
-    
-    def play(self, hand, bfield):
-        bfield.append(self)
-        hand.pop(hand.index(self))
+import card_classes as cc
 
-def decklist():
+## assemble a table of cards used in the deck
+def card_dict():
     
-    # multicolor green cards are treated as G
-    allosaurus = MagicCard('Allosaurus Rider', 7, 'creature', 'G')
-    wurm = MagicCard('Autochthon Wurm', 15, 'creature', 'G') 
-    griselbrand = MagicCard('Griselbrand', 8, 'creature', 'B')
-    chancellor = MagicCard('Chancellor of the Tangle', 7, 'creature', 'G')
-    cantor = MagicCard('Wild Cantor', 1, 'creature', 'G')
-    spirit = MagicCard('Simian Spirit Guide', 3, 'creature', 'R')
-    maniac = MagicCard('Laboratory Maniac', 3, 'creature', 'U')
-        
-    eldritch = MagicCard('Eldritch Evolution', 3, 'sorcery', 'G')
-    neoform = MagicCard('Neoform', 2, 'sorcery', 'G')
-    g_pact = MagicCard('Summoners Pact', 0, 'instant', 'G')
-    u_pact = MagicCard('Pact of Negation', 0, 'instant', 'U')
-    shoal = MagicCard('Nourishing Shoal', 2, 'instant', 'G')
-    manamorphose = MagicCard('Manamorphose', 2, 'instant', 'G')
-    #storm = MagicCard('Lightning Storm', 3, 'instant', 'R')
-    visions = MagicCard('Serum Visions', 1, 'sorcery', 'U')
-    revival = MagicCard('Noxious Revival', 1, 'sorcery', 'G')
-    autumn = MagicCard('Edge of Autumn', 2, 'sorcery', 'G')
-    lgo = MagicCard('Life Goes On', 1, 'instant', 'G')
-    quest = MagicCard('Safewright Quest', 1, 'sorcery', 'G')
-
-    pool = Land('Breeding Pool', False, 'UG')
-    sanctum = Land('Botanical Sanctum', False, 'UG')
-    gemstone = Land('Gemstone Mine', False, 'WUBRG')
-    #yavimaya = Land('Yavimaya Coast', False, 'UG')
-    grove = Land('Waterlogged Grove', False, 'UG')
-
-    lands_4 = [sanctum, gemstone] * 4
-    lands_3 = [grove] * 3
-    lands_2 = [pool] * 2
-    lands = lands_4 + lands_3 + lands_2
-
-    quads = [allosaurus, chancellor, spirit, eldritch, neoform, g_pact, shoal,
-         manamorphose, visions] * 4
-    dups = [wurm, griselbrand] * 2
-    singles = [cantor, maniac, revival, u_pact, lgo, autumn, quest]
-
-    return lands + quads + dups + singles
-
-class NeoDeck:
+    lands = set(['Breeding Pool', 'Botanical Sanctum', 'Gemstone Mine', 
+                 'Waterlogged Grove', 'Yavimaya Coast', 'Island'])
+    tbl = {}
+    with open('neobrand_cards.csv', 'r') as neocards:
+        reader = csv.reader(neocards, delimiter=',')
+        for row in reader:
+            if row[0] in lands:
+                tbl[row[0]] = cc.Land(row[0], int(row[1]), row[2])
+            else:
+                tbl[row[0]] = cc.MagicCard(row[0], int(row[1]), row[2], row[3])
     
-    def __init__(self):
-        self.deck = decklist()
-    
-    def shuffle(self):
-        for i in range(0,5):
-            shuffle(self.deck)
-    
-    # draw opening hand
-    def draw_opener(self, handsize):
-        self.shuffle()
-        hand = self.deck[:handsize]
-        del self.deck[:handsize]
-        return hand
-    
-    def draw(self, hand):
-        hand.append(self.deck[0])
-        self.deck.pop(0)
-    
-    def scry_bottom(self):
-        self.deck.append(self.deck[0])
-        del self.deck[0]    
+    return tbl
 
+## generate a decklist from a MTGO formatted text file
+def assemble_decklist(card_dict, decklist):
+    
+    outlist = []
+    with open(decklist, 'r') as decklist:
+        for row in decklist:   
+            row = row.strip()
+            
+            # break before the sideboard
+            if not row: break
+            
+            row = row.split(' ', 1)
+            count = 1
+            while count <= int(row[0]):
+                outlist.append(card_dict[row[1]])
+                count += 1
+    
+    return outlist
 
 ## searchees for allosaurus rider/pact and neoform/evolution in hand
 def rider_and_tutor(hand_dict):
     
-    has_rider = 'Allosaurus Rider' in hand_dict or 'Summoners Pact' in hand_dict
+    has_rider = 'Allosaurus Rider' in hand_dict or "Summoner's Pact" in hand_dict
     has_tutor = 'Eldritch Evolution' in hand_dict or 'Neoform' in hand_dict
     return True if has_rider and has_tutor else False
 
 ## check in hand contains a land
 def land_check(hand_dict):
-    all_lands = set(['Breeding Pool', 'Botanical Sanctum', 
-                    'Gemstone Mine', 'Waterlogged Grove'])
+    
+    all_lands = set(['Breeding Pool', 'Botanical Sanctum', 'Gemstone Mine', 
+                 'Waterlogged Grove', 'Yavimaya Coast', 'Island'])
     return True if all_lands.intersection(hand_dict) else False
 
 ## check if hand has mana to cast neoform
-def tryNeoform(hand_dict):
+def try_neoform(hand_dict):
     
     has_land = land_check(hand_dict)
     tangle_count = hand_dict.get('Chancellor of the Tangle', 0)
@@ -139,7 +89,7 @@ def tryNeoform(hand_dict):
     
     return False
 
-def tryEvolution(hand_dict):
+def try_evolution(hand_dict):
     
     has_land = land_check(hand_dict)
     tangle_count = hand_dict.get('Chancellor of the Tangle', 0)
@@ -213,11 +163,11 @@ def eval_hand(hand):
     
     # third check: check for neoform mana
     if 'Neoform' in hand_dict:
-        neoform_flag = tryNeoform(hand_dict)
+        neoform_flag = try_neoform(hand_dict)
     
     # fourth check: check for evolution mana
     if 'Eldritch Evolution' in hand_dict:
-        evolution_flag = tryEvolution(hand_dict)
+        evolution_flag = try_evolution(hand_dict)
     
     # fifth check: green cards to cast rider
     if neoform_flag:
@@ -229,14 +179,6 @@ def eval_hand(hand):
         keep = count_green(hand, 'Eldritch Evolution', evolution_flag)
 
     return keep
-
-## perform simulation with 7 card hands
-def simulate_hand():
-    
-    library = NeoDeck()
-    hand = library.draw_opener(7)
-
-    return eval_hand(hand)
 
 ## helper function to evaluate all hands resulting from a london mulligan
 def eval_mulligan(hand, mull_count):
@@ -251,33 +193,46 @@ def eval_mulligan(hand, mull_count):
         
     return keep
 
-## perform simulation with mulligans turned on
-def sim_with_mulligans():
+## perform simulation
+def sim_with_mulligans(decklist):
     
+    library = cc.Deck(decklist)
     mull_count = 0
     keep = False
     while not keep and mull_count <= 2:
-        library = NeoDeck()
         hand = library.draw_opener(7)
         keep = eval_mulligan(hand, mull_count)
         mull_count += 1
         
     return keep
 
-def main():
+## user inputs for decklist and number of simulations
+def get_inputs():
+
+    while 1:
+        infile = input('import a decklist, or return for default list: ')
+        if not infile:
+            decklist = assemble_decklist(card_dict(), 'NeobrandDefaultList.txt')
+            break
+        try: decklist = assemble_decklist(card_dict(), infile)
+        except: print('Invalid decklist. Must follow MTGO formatting.')
+        else: break
     
     while 1:
         n = input('number of simulated hands: ')
         try: n = int(n)
         except: print('input must be a positive integer')
         else: break
+    
+    return decklist, n
 
-    print('running simulations...')
-    sims = [sim_with_mulligans() for x in range(n)]
+def main():
+    
+    decklist, n = get_inputs()
+    sims = [sim_with_mulligans(decklist) for x in range(n)]
     print('results: ' + str(sum(sims)) + ' turn 1 Griselbrands in ' 
           + str(n) + ' hands: ' 
-          + str(round(np.mean(sims)*100, 2)) + '% success rate') 
-   
+          + str(round(np.mean(sims)*100, 2)) + '% success rate')
 
 if __name__ == '__main__':
     main()
