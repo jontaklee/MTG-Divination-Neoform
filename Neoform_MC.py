@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 v3.0
+#!/usr/bin/env python3 v3.1
 # -*- coding: utf-8 -*-
 """
 @author: jonathan t lee - https://github.com/jontaklee
@@ -52,17 +52,20 @@ def rider_and_tutor(hand_dict):
     has_tutor = 'Eldritch Evolution' in hand_dict or 'Neoform' in hand_dict
     return True if has_rider and has_tutor else False
 
-## check in hand contains a land
+## check if hand contains a land
 def land_check(hand_dict):
     
     all_lands = set(['Breeding Pool', 'Botanical Sanctum', 'Gemstone Mine', 
                  'Waterlogged Grove', 'Yavimaya Coast', 'Island'])
-    return True if all_lands.intersection(hand_dict) else False
+    hand_lands = all_lands.intersection(hand_dict)
+
+    if hand_lands == set(['Island']): return 1
+    return 2 if hand_lands else False
 
 ## check if hand has mana to cast neoform
 def try_neoform(hand_dict):
     
-    has_land = land_check(hand_dict)
+    land_flag = land_check(hand_dict)
     tangle_count = hand_dict.get('Chancellor of the Tangle', 0)
     ssg_count = hand_dict.get('Simian Spirit Guide', 0)
     filter_count = hand_dict.get('Manamorphose', 0) + hand_dict.get(
@@ -70,11 +73,11 @@ def try_neoform(hand_dict):
     has_quest = hand_dict.get('Safewright Quest', 0)
     
     # ug land + tangle
-    if has_land and tangle_count:
+    if land_flag and tangle_count:
         return 1
     
     # land + ssg + manamorphose/cantor
-    if has_land and ssg_count and filter_count:
+    if land_flag and ssg_count and filter_count:
         return 2
     
     # 2 tangle and/or ssg + manamorphose/cantor
@@ -91,19 +94,27 @@ def try_neoform(hand_dict):
 
 def try_evolution(hand_dict):
     
-    has_land = land_check(hand_dict)
+    land_flag = land_check(hand_dict)
     tangle_count = hand_dict.get('Chancellor of the Tangle', 0)
     ssg_count = hand_dict.get('Simian Spirit Guide', 0)
     filter_count = hand_dict.get('Manamorphose', 0) + hand_dict.get(
             'Wild Cantor', 0)
     
     # land + 2 tangle, or 3 tangle
-    if has_land + tangle_count >= 3:
+    if tangle_count >= 3:
         return 1
     
-    # land + tangle + ssg
-    if has_land and tangle_count and ssg_count:
+    # land + 2 tangle
+    if land_flag and tangle_count >= 2:
         return 1
+    
+    # ug land + tangle + ssg
+    if land_flag == 1 and tangle_count and ssg_count:
+        return 1
+    
+    # island + tangle + ssg + color filter
+    if land_flag == 2 and tangle_count and ssg_count and filter_count:
+        return 2
     
     # 2 tangle + ssg
     if tangle_count == 2 and ssg_count:
